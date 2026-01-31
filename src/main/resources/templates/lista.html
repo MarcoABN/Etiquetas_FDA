@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Produtos</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f6f8; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #0056b3; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .btn-new { background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; }
+        
+        /* Botões de Ação */
+        .btn-print { background: #ffc107; color: #333; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; margin-right: 5px; }
+        .btn-edit { background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; }
+        .btn-print:hover { background: #e0a800; }
+        .btn-edit:hover { background: #138496; }
+
+        .alert { padding: 15px; margin-bottom: 20px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div th:if="${sucesso}" class="alert" th:text="${sucesso}"></div>
+    
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <h2>Produtos Cadastrados</h2>
+        <a href="/produtos/novo" class="btn-new">+ Novo Cadastro</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%;">Cod. WinThor</th>
+                <th>Descrição</th>
+                <th style="width: 25%;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="prod : ${produtos}">
+                <td th:text="${prod.codprod}"></td>
+                <td th:text="${prod.productName}"></td>
+                <td>
+					<a th:href="@{/produtos/impressao(id=${prod.id})}" class="btn-print">🖨️ Imprimir</a>
+                    
+                    <a th:href="@{/produtos/editar/{id}(id=${prod.id})}" class="btn-edit">✏️ Editar</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

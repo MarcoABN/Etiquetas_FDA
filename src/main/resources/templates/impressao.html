@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Central de Impressão</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* HEADER & SEARCH */
+        .search-bar { background: #0056b3; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+        .search-bar label { color: white; font-weight: bold; white-space: nowrap; }
+        .search-bar input { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 16px; outline: none; }
+        .search-bar button { background: #ffc107; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; color: #333; transition: 0.2s; }
+        .search-bar button:hover { background: #e0a800; }
+        .btn-list { color: rgba(255,255,255,0.8); text-decoration: none; margin-left: 15px; font-size: 14px; }
+
+        /* GRID: Esquerda (Revisão + Preview) | Direita (Controles) */
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; align-items: start; }
+        
+        .review-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .review-header { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
+        .review-header h2 { margin: 0; color: #0056b3; font-size: 24px; }
+        .data-group { margin-bottom: 20px; border-bottom: 1px dashed #eee; padding-bottom: 10px; }
+        .data-title { font-size: 12px; text-transform: uppercase; color: #999; font-weight: bold; margin-bottom: 8px; letter-spacing: 1px; }
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .data-item { font-size: 14px; }
+        .long-text { display: block; background: #f9f9f9; padding: 8px; border-radius: 4px; margin-top: 2px; font-size: 13px; line-height: 1.4; }
+
+        /* PREVIEW ZEBRA (NOVO) */
+        .zebra-preview-box { margin-top: 20px; text-align: center; background: #333; padding: 20px; border-radius: 8px; }
+        .zebra-preview-box h3 { color: white; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        #previewImage { max-width: 100%; box-shadow: 0 0 15px rgba(0,0,0,0.5); border: 1px solid #fff; }
+        .loading-text { color: #ccc; font-style: italic; font-size: 12px; }
+
+        /* DIREITA */
+        .control-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: sticky; top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        .settings-toggle { background: #f1f3f5; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; color: #444; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        .settings-content { display: none; padding-top: 10px; border-top: 1px solid #ddd; }
+        .settings-content.active { display: block; }
+        
+        .btn-print { background: #28a745; color: white; width: 100%; padding: 15px; border: none; font-size: 18px; cursor: pointer; border-radius: 4px; transition: 0.3s; font-weight: bold; }
+        .btn-print:hover { background: #218838; }
+        .empty-state { text-align: center; padding: 50px; color: #777; font-size: 18px; }
+    </style>
+    <script>
+        function toggleSettings() {
+            var content = document.getElementById('settingsPanel');
+            content.classList.toggle('active');
+        }
+
+        // FUNÇÃO PARA CARREGAR PREVIEW
+        function loadPreview() {
+            var zpl = document.getElementById('zplData').value;
+            if(!zpl) return;
+
+            var imgElement = document.getElementById('previewImage');
+            var statusElement = document.getElementById('previewStatus');
+
+            // URL da API Labelary (Emulador Zebra)
+            // Ajustado para 4x6 polegadas (aprox 10x15cm) - O Labelary ajusta ao conteúdo
+            var url = "http://api.labelary.com/v1/printers/8dpmm/labels/4x4/0/"; 
+
+            // Fazendo POST para evitar limite de caracteres na URL
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Accept': 'image/png' }, // Queremos uma imagem
+                body: zpl // O corpo é o código ZPL puro
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                var objectURL = URL.createObjectURL(blob);
+                imgElement.src = objectURL;
+                statusElement.style.display = 'none';
+                imgElement.style.display = 'inline-block';
+            })
+            .catch(e => {
+                console.error(e);
+                statusElement.innerText = "Erro ao carregar preview.";
+            });
+        }
+    </script>
+</head>
+<body onload="loadPreview()"> <div class="container">
+    
+    <form action="/produtos/impressao" method="get" class="search-bar">
+        <label>🔍 Pesquisar Produto:</label>
+        <input type="text" name="buscaCod" placeholder="Digite o Código WinThor..." autofocus>
+        <button type="submit">Buscar</button>
+        <a href="/produtos/lista" class="btn-list">Ver Lista Completa</a>
+    </form>
+
+    <div th:if="${erro}" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 20px;" th:text="${erro}"></div>
+
+    <div th:if="${product == null}" class="empty-state">
+        👆 Digite o código do produto acima para carregar os dados.
+    </div>
+
+    <div th:if="${product != null}" class="main-grid">
+        
+        <div class="review-card">
+            <input type="hidden" id="zplData" th:value="${zplRaw}">
+
+            <div class="review-header">
+                <h2 th:text="${product.productNameEn != null ? product.productNameEn : product.productName}">Nome FDA</h2>
+                <span style="color: #888;">Interno (PT): <span th:text="${product.productName}"></span></span>
+                <span style="margin-top: 5px;">Cód. WinThor: <strong th:text="${product.codprod}"></strong></span>
+            </div>
+
+            <div class="zebra-preview-box">
+                <h3>Visualização da Etiqueta (Preview Real)</h3>
+                <span id="previewStatus" class="loading-text">Gerando imagem da etiqueta...</span>
+                <img id="previewImage" style="display:none;" alt="Preview da Etiqueta">
+                <br>
+                <small style="color: #888; font-size: 10px;">Gerado via Labelary API</small>
+            </div>
+        </div>
+
+        <div class="control-card">
+            <div class="control-title">🖨️ Controles</div>
+            
+            <form action="/produtos/executar-impressao" method="post">
+                <input type="hidden" name="id" th:value="${product.id}">
+                
+                <div class="form-group">
+                    <label>Impressora</label>
+                    <select name="impressora">
+                        <option th:each="imp : ${impressoras}" th:value="${imp}" th:text="${imp}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" name="quantidade" value="1" min="1" max="500" style="font-size: 18px; font-weight: bold; text-align: center;">
+                </div>
+
+                <div class="settings-toggle" onclick="toggleSettings()">
+                    <span>⚙️ Ajustes Avançados</span>
+                    <span>▼</span>
+                </div>
+                <div id="settingsPanel" class="settings-content">
+                    <div class="form-group">
+                        <label>Largura (dots)</label>
+                        <input type="number" name="labelWidth" th:value="${config.labelWidth}">
+                    </div>
+                    <div class="form-group">
+                        <label>Altura (dots)</label>
+                        <input type="number" name="labelHeight" th:value="${config.labelHeight}">
+                    </div>
+                    <div class="form-group">
+                        <label>Deslocar X</label>
+                        <input type="number" name="offsetX" th:value="${config.offsetX}">
+                    </div>
+                    <div class="form-group">
+                        <label>Deslocar Y</label>
+                        <input type="number" name="offsetY" th:value="${config.offsetY}">
+                    </div>
+                    <div class="form-group">
+                        <label>Escuridão</label>
+                        <input type="number" name="darkness" th:value="${config.darkness}">
+                    </div>
+                    <small style="color:red; font-size: 11px;">* Ao alterar ajustes, salve e recarregue para ver no preview.</small>
+                </div>
+
+                <button type="submit" class="btn-print">IMPRIMIR AGORA</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
