@@ -2,17 +2,34 @@ package com.projeto.etiqueta.service;
 
 import com.projeto.etiqueta.model.PrintConfig;
 import com.projeto.etiqueta.model.Product;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 import javax.print.*;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class PrintService {
+
+    private static final double DPI_CONVERSION = 8.0;
+
+    private String carregarTemplateDoArquivo(String nomeArquivo) {
+        try {
+            ClassPathResource resource = new ClassPathResource("zpl/" + nomeArquivo);
+            if (!resource.exists()) throw new RuntimeException("Template não encontrado: " + nomeArquivo);
+            return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao ler ZPL: " + e.getMessage());
+        }
+    }
 
     public List<String> listarImpressorasDisponiveis() {
         List<String> nomes = new ArrayList<>();
@@ -23,41 +40,113 @@ public class PrintService {
         return nomes;
     }
 
-    // Método Público para gerar o ZPL (Usado pelo Controller para o Preview)
-    public String gerarZplPreview(Product p, String zplTemplate, PrintConfig config) {
-        String zplContent = processarTemplate(p, zplTemplate);
+    public String gerarZplPreview(Product p, String nomeArquivoTemplate, PrintConfig config) {
+        String templateConteudo = carregarTemplateDoArquivo(nomeArquivoTemplate);
+        
+        // 1. Substitui variáveis
+        String zplContent = processarTemplate(p, templateConteudo);
 
-        String ajustes = String.format("^MD%d^LT%d^LS%d^PW%d^LL%d^PR%d", 
+        // 2. APLICA ESCALA MATEMÁTICA (Se for diferente de 100%)
+        if (config.getScale() != null && config.getScale() != 1.0) {
+            zplContent = aplicarEscalaInteligente(zplContent, config.getScale());
+        }
+
+        // 3. Configurações de Driver
+        int widthDots = (int) Math.round(config.getWidthMm() * DPI_CONVERSION);
+        int heightDots = (int) Math.round(config.getHeightMm() * DPI_CONVERSION);
+        int topDots = (int) Math.round(config.getOffsetTopMm() * DPI_CONVERSION);
+        int leftDots = (int) Math.round(config.getOffsetLeftMm() * DPI_CONVERSION);
+
+        // ^PO: Print Orientation (Inverte a impressão se necessário)
+        String orientacao = config.getOrientation() != null ? config.getOrientation() : "N";
+
+        String ajustes = String.format("^MD%d^LT%d^LS%d^PW%d^LL%d^PR%s^PO%s", 
                 config.getDarkness(), 
-                config.getOffsetY(), 
-                config.getOffsetX(),
-                config.getLabelWidth(),
-                config.getLabelHeight(),
-                config.getPrintSpeed());
+                topDots, 
+                leftDots,
+                widthDots,
+                heightDots,
+                config.getPrintSpeed(),
+                orientacao); // Injeta a rotação
 
         return zplContent.replace("^XA", "^XA" + ajustes);
     }
 
-    public void imprimir(Product p, String zplTemplate, String impressoraNome, int quantidade, PrintConfig config) throws PrintException {
-        // Usa o mesmo método de geração para garantir que o preview seja idêntico à impressão
-        String zplContent = gerarZplPreview(p, zplTemplate, config);
+    // --- ALGORITMO DE ESCALA DE ZPL ---
+    private String aplicarEscalaInteligente(String zpl, double scale) {
+        // Regex para capturar comandos numéricos comuns:
+        // ^FOx,y | ^FTx,y | ^GBw,h,t | ^A0N,h,w | ^FBw,...
         
-        // Adiciona comando de quantidade
+        // 1. Escalar Posições (^FO e ^FT)
+        zpl = scaleCommand(zpl, "\\^(FO|FT)([0-9]+),([0-9]+)", scale, true);
+        
+        // 2. Escalar Caixas (^GB w,h,t)
+        zpl = scaleCommand(zpl, "\\^(GB)([0-9]+),([0-9]+),([0-9]+)", scale, false);
+        
+        // 3. Escalar Fontes (^A0N,h,w ou ^A0R...)
+        zpl = scaleCommand(zpl, "\\^(A[0-9A-Z])([A-Z]),([0-9]+),([0-9]+)", scale, false);
+        
+        // 4. Escalar Field Block (^FB width)
+        // O FB é chato pois tem muitos parametros opcionais, vamos simplificar escalando o primeiro numero
+        Pattern patternFB = Pattern.compile("\\^FB([0-9]+)");
+        Matcher matcherFB = patternFB.matcher(zpl);
+        StringBuffer sb = new StringBuffer();
+        while (matcherFB.find()) {
+            int val = Integer.parseInt(matcherFB.group(1));
+            matcherFB.appendReplacement(sb, "^FB" + (int)Math.round(val * scale));
+        }
+        matcherFB.appendTail(sb);
+        zpl = sb.toString();
+
+        return zpl;
+    }
+
+    private String scaleCommand(String text, String regex, double scale, boolean isPosition) {
+        Pattern p = Pattern.compile(regex);
+        Matcher m = p.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        
+        while (m.find()) {
+            // Reconstrói o comando preservando o prefixo (Ex: ^FO)
+            StringBuilder replacement = new StringBuilder("^" + m.group(1));
+            
+            // Para Fontes, o grupo 2 é a rotação (N,R...), pulamos ele na matemática
+            int startIdx = 2;
+            if (m.group(1).startsWith("A")) {
+                replacement.append(m.group(2)).append(","); // Mantém a rotação da fonte
+                startIdx = 3;
+            }
+
+            // Itera pelos grupos numéricos capturados
+            for (int i = startIdx; i <= m.groupCount(); i++) {
+                if (i > startIdx) replacement.append(","); // Adiciona vírgula entre numeros
+                try {
+                    int val = Integer.parseInt(m.group(i));
+                    int scaledVal = (int) Math.round(val * scale);
+                    replacement.append(scaledVal);
+                } catch (NumberFormatException e) {
+                    replacement.append(m.group(i)); // Mantém original se erro
+                }
+            }
+            m.appendReplacement(sb, replacement.toString());
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    public void imprimir(Product p, String nomeArquivoTemplate, String impressoraNome, int quantidade, PrintConfig config) throws PrintException {
+        String zplContent = gerarZplPreview(p, nomeArquivoTemplate, config);
         zplContent = zplContent.replace("^XZ", "^PQ" + quantidade + "^XZ");
 
         javax.print.PrintService impressoraSelecionada = null;
         javax.print.PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
-        
         for (javax.print.PrintService service : services) {
             if (service.getName().equals(impressoraNome)) {
                 impressoraSelecionada = service;
                 break;
             }
         }
-
-        if (impressoraSelecionada == null) {
-            throw new RuntimeException("Impressora não encontrada.");
-        }
+        if (impressoraSelecionada == null) throw new RuntimeException("Impressora não encontrada.");
 
         DocPrintJob job = impressoraSelecionada.createPrintJob();
         byte[] bytes = zplContent.getBytes(StandardCharsets.UTF_8);
@@ -67,13 +156,10 @@ public class PrintService {
     }
 
     private String processarTemplate(Product p, String template) {
+        // ... (Mantenha o processarTemplate igual ao anterior) ...
         String vitaminsList = buildVitaminsString(p);
         String allergensList = buildAllergensString(p);
-
-        // LÓGICA DE NOME: Tenta Inglês, se não tiver, usa Português
-        String nomeEtiqueta = (p.getProductNameEn() != null && !p.getProductNameEn().isEmpty()) 
-                            ? p.getProductNameEn() 
-                            : p.getProductName();
+        String nomeEtiqueta = (p.getProductNameEn() != null && !p.getProductNameEn().isEmpty()) ? p.getProductNameEn() : p.getProductName();
 
         return template
             .replace("{PRODUCT_NAME}", nomeEtiqueta)
@@ -100,10 +186,8 @@ public class PrintService {
             .replace("{PROTEIN_DV}", p.getProteinDv() != null ? p.getProteinDv() : "")
             .replace("{CHOLESTEROL}", p.getCholesterol() != null ? p.getCholesterol() : "")
             .replace("{CHOLESTEROL_DV}", p.getCholesterolDv() != null ? p.getCholesterolDv() : "")
-            
             .replace("{VITAMINS}", vitaminsList)
             .replace("{ALLERGENS}", allergensList)
-            
             .replace("{POLY_FAT}", p.getPolyFat() != null ? p.getPolyFat() : "")
             .replace("{MONO_FAT}", p.getMonoFat() != null ? p.getMonoFat() : "")
             .replace("{SUGAR_ALCOHOL}", p.getSugarAlcohol() != null ? p.getSugarAlcohol() : "")
@@ -111,7 +195,7 @@ public class PrintService {
             .replace("{IMPORTED_BY}", p.getImportedBy() != null ? p.getImportedBy() : "")
             .replace("{DAILY_CALORIES}", "2000"); 
     }
-
+    
     private String buildAllergensString(Product p) {
         StringBuilder sb = new StringBuilder();
         if (p.getAllergensContains() != null && !p.getAllergensContains().trim().isEmpty()) {

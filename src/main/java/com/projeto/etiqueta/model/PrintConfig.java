@@ -4,48 +4,74 @@ import lombok.Data;
 
 @Data
 public class PrintConfig {
-    private int darkness = 15;      // Escuridão (0-30)
-    private int printSpeed = 3;     // Velocidade
-    private int offsetX = 0;        // Deslocamento Horizontal (mm ou dots)
-    private int offsetY = 0;        // Deslocamento Vertical
-    private int labelWidth = 800;   // Largura (dots) - 100mm ~= 800 dots
-    private int labelHeight = 640;  // Altura (dots) - 80mm ~= 640 dots
-	public int getDarkness() {
+    
+    // Dimensões (Milímetros)
+    private Double widthMm = 100.0;     // Padrão 100mm
+    private Double heightMm = 150.0;    // Padrão 150mm
+
+    // Ajustes de Posição (Milímetros)
+    private Double offsetTopMm = 0.0;   // Topo (Y)
+    private Double offsetLeftMm = 0.0;  // Esquerda (X)
+
+    // Impressão
+    private Integer darkness = 15;      // 0 a 30
+    private String printSpeed = "3";    // Enviaremos o código ZPL (2,3,4,5,6) mas o front mostra mm/s
+	
+    private Double scale = 1.0;         // 1.0 = 100%, 0.5 = 50%
+    private String orientation = "N";   // N=Normal, R=90º, I=180º, B=270º
+    
+    
+    public Double getWidthMm() {
+		return widthMm;
+	}
+	public void setWidthMm(Double widthMm) {
+		this.widthMm = widthMm;
+	}
+	public Double getHeightMm() {
+		return heightMm;
+	}
+	public void setHeightMm(Double heightMm) {
+		this.heightMm = heightMm;
+	}
+	public Double getOffsetTopMm() {
+		return offsetTopMm;
+	}
+	public void setOffsetTopMm(Double offsetTopMm) {
+		this.offsetTopMm = offsetTopMm;
+	}
+	public Double getOffsetLeftMm() {
+		return offsetLeftMm;
+	}
+	public void setOffsetLeftMm(Double offsetLeftMm) {
+		this.offsetLeftMm = offsetLeftMm;
+	}
+	public Integer getDarkness() {
 		return darkness;
 	}
-	public void setDarkness(int darkness) {
+	public void setDarkness(Integer darkness) {
 		this.darkness = darkness;
 	}
-	public int getPrintSpeed() {
+	public String getPrintSpeed() {
 		return printSpeed;
 	}
-	public void setPrintSpeed(int printSpeed) {
+	public void setPrintSpeed(String printSpeed) {
 		this.printSpeed = printSpeed;
 	}
-	public int getOffsetX() {
-		return offsetX;
+	public Double getScale() {
+		return scale;
 	}
-	public void setOffsetX(int offsetX) {
-		this.offsetX = offsetX;
+	public void setScale(Double scale) {
+		this.scale = scale;
 	}
-	public int getOffsetY() {
-		return offsetY;
+	public String getOrientation() {
+		return orientation;
 	}
-	public void setOffsetY(int offsetY) {
-		this.offsetY = offsetY;
+	public void setOrientation(String orientation) {
+		this.orientation = orientation;
 	}
-	public int getLabelWidth() {
-		return labelWidth;
-	}
-	public void setLabelWidth(int labelWidth) {
-		this.labelWidth = labelWidth;
-	}
-	public int getLabelHeight() {
-		return labelHeight;
-	}
-	public void setLabelHeight(int labelHeight) {
-		this.labelHeight = labelHeight;
-	}
+	
+	
+
     
-    
+
 }

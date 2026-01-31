@@ -4,172 +4,309 @@
     <meta charset="UTF-8">
     <title>Central de Impressão</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; padding: 20px; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        /* RESET & BASE */
+        input[type=range] { width: 100%; cursor: pointer; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #eef2f5; padding: 0; margin: 0; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-        /* HEADER & SEARCH */
-        .search-bar { background: #0056b3; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-        .search-bar label { color: white; font-weight: bold; white-space: nowrap; }
-        .search-bar input { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 16px; outline: none; }
-        .search-bar button { background: #ffc107; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; color: #333; transition: 0.2s; }
-        .search-bar button:hover { background: #e0a800; }
-        .btn-list { color: rgba(255,255,255,0.8); text-decoration: none; margin-left: 15px; font-size: 14px; }
+        /* HEADER */
+        .search-container { background: #004085; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; }
+        .search-form { display: flex; gap: 10px; flex: 1; max-width: 800px; }
+        .search-form label { color: white; font-weight: bold; align-self: center; margin-right: 10px; }
+        .search-form input { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 16px; outline: none; }
+        .search-form button { background: #ffc107; border: none; padding: 0 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; color: #333; transition: 0.2s; height: 45px; }
+        .search-form button:hover { background: #e0a800; }
+        .actions-link a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; margin-left: 20px; }
 
-        /* GRID: Esquerda (Revisão + Preview) | Direita (Controles) */
-        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; align-items: start; }
+        /* LAYOUT */
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: start; }
+
+        /* ESQUERDA - DADOS DO PRODUTO */
+        .data-panel { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 30px; }
+        .product-header { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .product-header h1 { margin: 0; color: #004085; font-size: 26px; }
+        .sub-info { font-size: 14px; color: #666; margin-top: 5px; }
         
-        .review-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .review-header { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
-        .review-header h2 { margin: 0; color: #0056b3; font-size: 24px; }
-        .data-group { margin-bottom: 20px; border-bottom: 1px dashed #eee; padding-bottom: 10px; }
-        .data-title { font-size: 12px; text-transform: uppercase; color: #999; font-weight: bold; margin-bottom: 8px; letter-spacing: 1px; }
-        .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-        .data-item { font-size: 14px; }
-        .long-text { display: block; background: #f9f9f9; padding: 8px; border-radius: 4px; margin-top: 2px; font-size: 13px; line-height: 1.4; }
+        /* Estilos das Seções de Informação */
+        .info-section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .info-section:last-child { border-bottom: none; }
+        .info-title { font-size: 14px; text-transform: uppercase; color: #004085; font-weight: 800; margin-bottom: 12px; border-left: 4px solid #ffc107; padding-left: 10px; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .info-item { background: #f8f9fa; padding: 8px 10px; border-radius: 4px; border: 1px solid #e9ecef; }
+        .info-item label { display: block; font-size: 11px; color: #666; margin-bottom: 3px; text-transform: uppercase; }
+        .info-item span { display: block; font-size: 13px; font-weight: 700; color: #333; }
+        
+        .long-text { font-size: 13px; line-height: 1.5; color: #444; background: #fffbe6; padding: 15px; border-radius: 4px; border: 1px solid #faeace; }
+        .allergen-box { background-color: #ffeaea; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; color: #721c24; font-weight: bold; font-size: 13px; margin-top: 5px; }
 
-        /* PREVIEW ZEBRA (NOVO) */
-        .zebra-preview-box { margin-top: 20px; text-align: center; background: #333; padding: 20px; border-radius: 8px; }
-        .zebra-preview-box h3 { color: white; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-        #previewImage { max-width: 100%; box-shadow: 0 0 15px rgba(0,0,0,0.5); border: 1px solid #fff; }
-        .loading-text { color: #ccc; font-style: italic; font-size: 12px; }
+        /* DIREITA (STICKY) */
+        .sidebar-panel { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-        /* DIREITA */
-        .control-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: sticky; top: 20px; }
+        .preview-card { background: #2c2c2c; padding: 20px; border-radius: 8px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .preview-card h3 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        #previewImage { max-width: 100%; border: 1px solid #fff; background: white; min-height: 200px; transition: opacity 0.3s; }
+        .loading-msg { font-size: 12px; color: #ccc; font-style: italic; }
+
+        .controls-card { background: white; padding: 0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #28a745; overflow: hidden; }
+        .controls-body { padding: 20px; }
+
+        /* Menu Colapsável */
+        .settings-header {
+            background: #f1f3f5; padding: 15px 20px; cursor: pointer; font-weight: bold; color: #495057; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd;
+            transition: background 0.2s;
+        }
+        .settings-header:hover { background: #e9ecef; }
+        .settings-content { display: none; padding: 20px; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        .settings-content.open { display: block; }
+
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #555; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .form-group label { display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #444; }
+        .form-group select, .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
         
-        .settings-toggle { background: #f1f3f5; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; color: #444; margin-bottom: 15px; display: flex; justify-content: space-between; }
-        .settings-content { display: none; padding-top: 10px; border-top: 1px solid #ddd; }
-        .settings-content.active { display: block; }
-        
-        .btn-print { background: #28a745; color: white; width: 100%; padding: 15px; border: none; font-size: 18px; cursor: pointer; border-radius: 4px; transition: 0.3s; font-weight: bold; }
+        .btn-apply { background: #17a2b8; color: white; width: 100%; padding: 10px; border: none; font-size: 14px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; }
+        .btn-print { background: #28a745; color: white; width: 100%; padding: 15px; border: none; font-size: 18px; cursor: pointer; border-radius: 4px; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
         .btn-print:hover { background: #218838; }
-        .empty-state { text-align: center; padding: 50px; color: #777; font-size: 18px; }
+
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .quantity-section { background: #e8f5e9; padding: 15px; border-radius: 4px; border: 1px solid #c3e6cb; margin-bottom: 10px; text-align: center; }
+        .quantity-section input { font-size: 20px; text-align: center; font-weight: bold; color: #28a745; width: 80px; display: inline-block; }
+        .quantity-section label { display: inline-block; margin-right: 10px; font-size: 16px; }
+
+        .empty-state { text-align: center; padding: 60px; color: #999; font-size: 20px; background: white; border-radius: 8px; margin-top: 20px; }
+        .success-msg { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; border: 1px solid #c3e6cb; }
+        .error-msg { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
     </style>
     <script>
-        function toggleSettings() {
-            var content = document.getElementById('settingsPanel');
-            content.classList.toggle('active');
-        }
-
-        // FUNÇÃO PARA CARREGAR PREVIEW
         function loadPreview() {
             var zpl = document.getElementById('zplData').value;
             if(!zpl) return;
 
             var imgElement = document.getElementById('previewImage');
             var statusElement = document.getElementById('previewStatus');
+            
+            var mmW = parseFloat(document.querySelector('input[name="widthMm"]').value) || 100;
+            var mmH = parseFloat(document.querySelector('input[name="heightMm"]').value) || 150;
 
-            // URL da API Labelary (Emulador Zebra)
-            // Ajustado para 4x6 polegadas (aprox 10x15cm) - O Labelary ajusta ao conteúdo
-            var url = "http://api.labelary.com/v1/printers/8dpmm/labels/4x4/0/"; 
+            var wInches = Math.round(mmW / 25.4);
+            var hInches = Math.round(mmH / 25.4);
+            if(wInches < 1) wInches = 1;
+            if(hInches < 1) hInches = 1;
 
-            // Fazendo POST para evitar limite de caracteres na URL
+            var sizeString = wInches + "x" + hInches;
+            var url = "http://api.labelary.com/v1/printers/8dpmm/labels/" + sizeString + "/0/"; 
+
+            statusElement.innerText = "Carregando (" + sizeString + ")...";
+            imgElement.style.opacity = 0.5;
+
             fetch(url, {
                 method: 'POST',
-                headers: { 'Accept': 'image/png' }, // Queremos uma imagem
-                body: zpl // O corpo é o código ZPL puro
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: zpl
             })
-            .then(response => response.blob())
+            .then(response => {
+                if (!response.ok) throw new Error("Erro API");
+                return response.blob();
+            })
             .then(blob => {
                 var objectURL = URL.createObjectURL(blob);
                 imgElement.src = objectURL;
                 statusElement.style.display = 'none';
-                imgElement.style.display = 'inline-block';
+                imgElement.style.opacity = 1;
             })
             .catch(e => {
                 console.error(e);
-                statusElement.innerText = "Erro ao carregar preview.";
+                statusElement.innerText = "Erro preview.";
             });
+        }
+
+        function aplicarAlteracoes() {
+            var form = document.getElementById('printForm');
+            form.action = "/produtos/salvar-config";
+            form.submit();
+        }
+
+        function updateScaleLabel(val) {
+            document.getElementById('scaleValue').innerText = Math.round(val * 100) + "%";
+        }
+
+        function toggleSettings() {
+            var panel = document.getElementById('settingsPanel');
+            var icon = document.getElementById('toggleIcon');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                icon.innerText = '▼';
+            } else {
+                panel.style.display = 'block';
+                icon.innerText = '▲';
+            }
+        }
+
+        // Submete a busca ao sair do campo se ele não estiver vazio (simula TAB)
+        function checkSubmit(input) {
+            if(input.value.trim() !== "") {
+                // Opcional: descomente a linha abaixo se quiser buscar automaticamente ao sair do campo (Tab)
+                // input.form.submit();
+            }
         }
     </script>
 </head>
-<body onload="loadPreview()"> <div class="container">
-    
-    <form action="/produtos/impressao" method="get" class="search-bar">
-        <label>🔍 Pesquisar Produto:</label>
-        <input type="text" name="buscaCod" placeholder="Digite o Código WinThor..." autofocus>
-        <button type="submit">Buscar</button>
-        <a href="/produtos/lista" class="btn-list">Ver Lista Completa</a>
-    </form>
+<body onload="loadPreview()">
 
-    <div th:if="${erro}" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 20px;" th:text="${erro}"></div>
+<div class="container">
 
-    <div th:if="${product == null}" class="empty-state">
-        👆 Digite o código do produto acima para carregar os dados.
+    <div class="search-container">
+        <form action="/produtos/impressao" method="get" class="search-form">
+            <label>🔍 Pesquisa:</label>
+            <input type="text" name="buscaCod" placeholder="Digite o Código WinThor e Enter..." 
+                   th:autofocus="${product == null}" onblur="checkSubmit(this)">
+            <button type="submit">BUSCAR</button>
+        </form>
+        <div class="actions-link">
+            <a href="/produtos/lista">Voltar para Lista</a>
+        </div>
     </div>
 
-    <div th:if="${product != null}" class="main-grid">
+    <div th:if="${sucesso}" class="success-msg" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="error-msg" th:text="${erro}"></div>
+    <div th:if="${product == null}" class="empty-state">👆 Pesquise um produto para começar.</div>
+
+    <div th:if="${product != null}" class="main-layout">
         
-        <div class="review-card">
+        <div class="data-panel">
             <input type="hidden" id="zplData" th:value="${zplRaw}">
-
-            <div class="review-header">
-                <h2 th:text="${product.productNameEn != null ? product.productNameEn : product.productName}">Nome FDA</h2>
-                <span style="color: #888;">Interno (PT): <span th:text="${product.productName}"></span></span>
-                <span style="margin-top: 5px;">Cód. WinThor: <strong th:text="${product.codprod}"></strong></span>
-            </div>
-
-            <div class="zebra-preview-box">
-                <h3>Visualização da Etiqueta (Preview Real)</h3>
-                <span id="previewStatus" class="loading-text">Gerando imagem da etiqueta...</span>
-                <img id="previewImage" style="display:none;" alt="Preview da Etiqueta">
-                <br>
-                <small style="color: #888; font-size: 10px;">Gerado via Labelary API</small>
-            </div>
-        </div>
-
-        <div class="control-card">
-            <div class="control-title">🖨️ Controles</div>
             
-            <form action="/produtos/executar-impressao" method="post">
-                <input type="hidden" name="id" th:value="${product.id}">
-                
-                <div class="form-group">
-                    <label>Impressora</label>
-                    <select name="impressora">
-                        <option th:each="imp : ${impressoras}" th:value="${imp}" th:text="${imp}"></option>
-                    </select>
+            <div class="product-header">
+                <h1 th:text="${product.productNameEn != null ? product.productNameEn : product.productName}">Nome FDA</h1>
+                <div class="sub-info">
+                    <span><strong>Interno (PT):</strong> <span th:text="${product.productName}"></span></span>
+                    <span><strong>WinThor:</strong> <span th:text="${product.codprod}"></span></span>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label>Quantidade</label>
-                    <input type="number" name="quantidade" value="1" min="1" max="500" style="font-size: 18px; font-weight: bold; text-align: center;">
+            <div class="info-section">
+                <div class="info-title">1. Informações Nutricionais Obrigatórias</div>
+                <div class="info-grid">
+                    <div class="info-item"><label>Calories (Valor Energético)</label><span th:text="${product.calories}"></span></div>
+                    
+                    <div class="info-item"><label>Total Carb (Carboidratos)</label><span th:text="${product.totalCarb} + ' (' + ${product.totalCarbDv} + '%)'"></span></div>
+                    
+                    <div class="info-item"><label>Total Sugars (Açúcares Totais)</label><span th:text="${product.totalSugars}"></span></div>
+                    <div class="info-item"><label>Added Sugars (Açúcares Adic.)</label><span th:text="${product.addedSugars} + ' (' + ${product.addedSugarsDv} + '%)'"></span></div>
+                    
+                    <div class="info-item"><label>Protein (Proteínas)</label><span th:text="${product.protein}"></span></div>
+                    
+                    <div class="info-item"><label>Total Fat (Gord. Totais)</label><span th:text="${product.totalFat} + ' (' + ${product.totalFatDv} + '%)'"></span></div>
+                    <div class="info-item"><label>Sat. Fat (Gord. Saturadas)</label><span th:text="${product.satFat} + ' (' + ${product.satFatDv} + '%)'"></span></div>
+                    <div class="info-item"><label>Trans Fat (Gord. Trans)</label><span th:text="${product.transFat}"></span></div>
+                    
+                    <div class="info-item"><label>Fiber (Fibra Alimentar)</label><span th:text="${product.fiber} + ' (' + ${product.fiberDv} + '%)'"></span></div>
+                    
+                    <div class="info-item"><label>Sodium (Sódio)</label><span th:text="${product.sodium} + ' (' + ${product.sodiumDv} + '%)'"></span></div>
                 </div>
+            </div>
 
-                <div class="settings-toggle" onclick="toggleSettings()">
-                    <span>⚙️ Ajustes Avançados</span>
-                    <span>▼</span>
-                </div>
-                <div id="settingsPanel" class="settings-content">
-                    <div class="form-group">
-                        <label>Largura (dots)</label>
-                        <input type="number" name="labelWidth" th:value="${config.labelWidth}">
-                    </div>
-                    <div class="form-group">
-                        <label>Altura (dots)</label>
-                        <input type="number" name="labelHeight" th:value="${config.labelHeight}">
-                    </div>
-                    <div class="form-group">
-                        <label>Deslocar X</label>
-                        <input type="number" name="offsetX" th:value="${config.offsetX}">
-                    </div>
-                    <div class="form-group">
-                        <label>Deslocar Y</label>
-                        <input type="number" name="offsetY" th:value="${config.offsetY}">
-                    </div>
-                    <div class="form-group">
-                        <label>Escuridão</label>
-                        <input type="number" name="darkness" th:value="${config.darkness}">
-                    </div>
-                    <small style="color:red; font-size: 11px;">* Ao alterar ajustes, salve e recarregue para ver no preview.</small>
-                </div>
+            <div class="info-section">
+                <div class="info-title">2. Ingredientes</div>
+                <div class="long-text" th:text="${product.ingredients}"></div>
+            </div>
 
-                <button type="submit" class="btn-print">IMPRIMIR AGORA</button>
-            </form>
+            <div class="info-section">
+                <div class="info-title">3. Alergênicos e Contains</div>
+                <div class="settings-grid">
+                    <div>
+                        <label style="font-weight:bold; font-size:12px;">CONTAINS:</label>
+                        <div class="allergen-box" th:text="${product.allergensContains}"></div>
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; font-size:12px;">MAY CONTAIN:</label>
+                        <div class="allergen-box" style="background:#fff3cd; border-color:#ffeeba; color:#856404;" th:text="${product.allergensMayContain}"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-title">4. Demais Nutrientes (Vitamins & Minerals)</div>
+                <div class="info-grid">
+                    <div class="info-item"><label>Cholest.</label><span th:text="${product.cholesterol} + ' (' + ${product.cholesterolDv} + '%)'"></span></div>
+                    <div class="info-item"><label>Vit. D</label><span th:text="${product.vitaminD}"></span></div>
+                    <div class="info-item"><label>Calcium</label><span th:text="${product.calcium}"></span></div>
+                    <div class="info-item"><label>Iron</label><span th:text="${product.iron}"></span></div>
+                    <div class="info-item"><label>Potassium</label><span th:text="${product.potassium}"></span></div>
+                    <div class="info-item"><label>Vit. A</label><span th:text="${product.vitaminA}"></span></div>
+                    <div class="info-item"><label>Vit. C</label><span th:text="${product.vitaminC}"></span></div>
+                </div>
+            </div>
+
         </div>
 
+        <div class="sidebar-panel">
+            
+            <div class="preview-card">
+                <h3>Visualização da Etiqueta</h3>
+                <span id="previewStatus" class="loading-msg"></span>
+                <img id="previewImage" alt="Preview Zebra">
+            </div>
+
+            <div class="controls-card">
+                <form id="printForm" action="/produtos/executar-impressao" method="post">
+                    <input type="hidden" name="id" th:value="${product.id}">
+
+                    <div class="settings-header" onclick="toggleSettings()">
+                        <span>🛠️ Configurações & Impressora</span>
+                        <span id="toggleIcon">▼</span>
+                    </div>
+
+                    <div id="settingsPanel" class="settings-content" style="display:none;">
+                        <div class="form-group">
+                            <label>🖨️ Selecionar Impressora</label>
+                            <select name="impressora" style="background-color: #fffde7;">
+                                <option th:each="imp : ${impressoras}" th:value="${imp}" th:text="${imp}"></option>
+                            </select>
+                        </div>
+                        <hr style="border:0; border-top:1px solid #ddd; margin: 15px 0;">
+                        
+                        <div class="form-group">
+                            <label>🔄 Orientação</label>
+                            <select name="orientation">
+                                <option value="N" th:selected="${config.orientation == 'N'}">Normal (Vertical)</option>
+                                <option value="R" th:selected="${config.orientation == 'R'}">90 Graus (Direita)</option>
+                                <option value="L" th:selected="${config.orientation == 'L'}">90 Graus (Esquerda)</option>
+                                <option value="I" th:selected="${config.orientation == 'I'}">180 Graus (Invertido)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                             <label>🔍 Zoom/Escala: <span id="scaleValue" style="color:#007bff; font-weight:bold;" th:text="${#numbers.formatDecimal(config.scale * 100, 0, 0) + '%'}">100%</span></label>
+                             <input type="range" name="scale" min="0.5" max="1.5" step="0.01" th:value="${config.scale}" oninput="updateScaleLabel(this.value)">
+                             <small style="color:#777; font-size:11px;">Ajuste fino de 1 em 1%.</small>
+                        </div>
+
+                         <div class="settings-grid">
+                            <div class="form-group"><label>Largura (mm)</label><input type="number" step="0.1" name="widthMm" th:value="${config.widthMm}"></div>
+                            <div class="form-group"><label>Altura (mm)</label><input type="number" step="0.1" name="heightMm" th:value="${config.heightMm}"></div>
+                        </div>
+                         <div class="settings-grid">
+                            <div class="form-group"><label>Topo (mm)</label><input type="number" step="0.5" name="offsetTopMm" th:value="${config.offsetTopMm}"></div>
+                            <div class="form-group"><label>Esq (mm)</label><input type="number" step="0.5" name="offsetLeftMm" th:value="${config.offsetLeftMm}"></div>
+                        </div>
+                        <button type="button" class="btn-apply" onclick="aplicarAlteracoes()">🔄 Aplicar Ajustes</button>
+                    </div>
+
+                    <div class="controls-body">
+                        <div class="quantity-section">
+                            <label>🔢 Quantidade de Etiquetas:</label>
+                            <input type="number" name="quantidade" value="1" min="1" max="500" 
+                                   th:autofocus="${product != null}" tabindex="1">
+                        </div>
+
+                        <button type="submit" class="btn-print" tabindex="2">🖨️ IMPRIMIR AGORA</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 

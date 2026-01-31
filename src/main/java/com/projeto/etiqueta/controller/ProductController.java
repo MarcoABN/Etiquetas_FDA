@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -26,42 +27,8 @@ public class ProductController {
     @Autowired
     private PrintConfigRepository configRepository;
 
-    private final String ZPL_TEMPLATE = "^XA\n" +
-            "^CI28\n" +
-            "^FO20,20^A0N,35,35^FB760,2,0,C^FD{PRODUCT_NAME}^FS\n" +
-            "^FO20,100^GB760,600,3^FS\n" + 
-            
-            "^FO30,120^A0N,40,40^FDNutrition Facts^FS\n" +
-            "^FO30,170^A0N,25,25^FDServing size {SERVING_SIZE}^FS\n" +
-            "^FO20,200^GB760,5,5^FS\n" +
-            
-            "^FO30,210^A0N,30,30^FDCalories^FS\n" +
-            "^FO600,210^A0N,50,50^FD{CALORIES}^FS\n" +
-            "^FO20,270^GB760,3,3^FS\n" +
-            
-            "^FO30,290^A0N,22,22^FDTotal Fat {TOTAL_FAT}g^FS\n" +
-            "^FO30,320^A0N,22,22^FDSat. Fat {SAT_FAT}g^FS\n" +
-            "^FO30,350^A0N,22,22^FDTrans Fat {TRANS_FAT}g^FS\n" +
-            "^FO30,380^A0N,22,22^FDCholest. {CHOLESTEROL}mg^FS\n" +
-            "^FO30,410^A0N,22,22^FDSodium {SODIUM}mg^FS\n" +
-            "^FO30,440^A0N,22,22^FDTotal Carb. {TOTAL_CARB}g^FS\n" +
-            "^FO30,470^A0N,22,22^FDFiber {FIBER}g^FS\n" +
-            "^FO30,500^A0N,22,22^FDSugars {TOTAL_SUGARS}g^FS\n" +
-            "^FO30,530^A0N,22,22^FDProtein {PROTEIN}g^FS\n" +
-            
-            "^FO20,560^GB760,3,3^FS\n" +
-            "^FO30,575^A0N,22,22^FB740,2,0,L^FD{VITAMINS}^FS\n" +
-            
-            "^FO20,640^A0N,18,18^FB760,2,0,L^FD* The % Daily Value tells you... (Base {DAILY_CALORIES} kcal)^FS\n" +
-            
-            // INGREDIENTES
-            "^FO20,710^A0N,20,20^FB760,4,0,L^FDING: {INGREDIENTS}^FS\n" +
-            
-            // ALERGÊNICOS (Sem prefixo fixo)
-            "^FO20,800^A0N,20,20^FB760,2,0,L^FD{ALLERGENS}^FS\n" +
-            
-            "^FO20,860^A0N,20,20^FB760,3,0,L^FD{IMPORTED_BY}^FS\n" +
-            "^XZ";
+    // AQUI ESTÁ A MUDANÇA: Nome do arquivo ao invés do código fixo
+    private final String NOME_ARQUIVO_TEMPLATE = "label_fda_base.zpl";
 
     @GetMapping("/novo")
     public String exibirForm(Model model) {
@@ -69,11 +36,21 @@ public class ProductController {
         return "cadastro";
     }
 
+    @GetMapping("/editar/{id}")
+    public String editar(@PathVariable String id, Model model) {
+        Product produto = repository.buscarPorId(id);
+        if (produto == null) {
+            return "redirect:/produtos/lista";
+        }
+        model.addAttribute("product", produto);
+        return "cadastro"; 
+    }
+
     @PostMapping("/salvar")
     public String salvar(@ModelAttribute Product product, RedirectAttributes attributes) {
         try {
             repository.salvar(product);
-            attributes.addFlashAttribute("sucesso", "Produto salvo!");
+            attributes.addFlashAttribute("sucesso", "Produto salvo com sucesso!");
             return "redirect:/produtos/lista";
         } catch (Exception e) {
             attributes.addFlashAttribute("erro", "Erro ao salvar: " + e.getMessage());
@@ -82,8 +59,29 @@ public class ProductController {
     }
 
     @GetMapping("/lista")
-    public String listar(Model model) {
-        model.addAttribute("produtos", repository.listarTodos());
+    public String listar(@RequestParam(required = false) String termo, Model model) {
+        List<Product> todosProdutos = repository.listarTodos();
+        
+        if (termo != null && !termo.trim().isEmpty()) {
+            String termoLower = termo.toLowerCase().trim();
+            
+            List<Product> filtrados = todosProdutos.stream()
+                .filter(p -> 
+                    // Verifica Código WinThor (se existir)
+                    (p.getCodprod() != null && p.getCodprod().toLowerCase().contains(termoLower)) ||
+                    // Verifica Nome PT (se existir)
+                    (p.getProductName() != null && p.getProductName().toLowerCase().contains(termoLower)) ||
+                    // Verifica Nome EN (se existir)
+                    (p.getProductNameEn() != null && p.getProductNameEn().toLowerCase().contains(termoLower))
+                )
+                .collect(Collectors.toList());
+                
+            model.addAttribute("produtos", filtrados);
+            model.addAttribute("termoAtivo", termo); // Para manter o texto no input
+        } else {
+            model.addAttribute("produtos", todosProdutos);
+        }
+        
         return "lista";
     }
 
@@ -110,11 +108,14 @@ public class ProductController {
         model.addAttribute("impressoras", impressoras);
         model.addAttribute("config", config);
 
-        // --- NOVIDADE: GERA O ZPL PARA PREVIEW ---
         if (produto != null) {
-            String zplPreview = printService.gerarZplPreview(produto, ZPL_TEMPLATE, config);
-            // Escapa aspas para não quebrar o JS
-            model.addAttribute("zplRaw", zplPreview);
+            try {
+                // Passa o NOME DO ARQUIVO para gerar o preview
+                String zplPreview = printService.gerarZplPreview(produto, NOME_ARQUIVO_TEMPLATE, config);
+                model.addAttribute("zplRaw", zplPreview);
+            } catch (Exception e) {
+                model.addAttribute("erro", "Erro ao carregar layout ZPL: " + e.getMessage());
+            }
         }
         
         return "impressao";
@@ -131,24 +132,27 @@ public class ProductController {
             configRepository.salvar(config); 
             
             if (produto != null) {
-                printService.imprimir(produto, ZPL_TEMPLATE, impressora, quantidade, config);
-                attributes.addFlashAttribute("sucesso", "Enviado para impressão!");
+                printService.imprimir(produto, NOME_ARQUIVO_TEMPLATE, impressora, quantidade, config);
+                attributes.addFlashAttribute("sucesso", "Etiqueta enviada para impressão! Próximo...");
             }
         } catch (Exception e) {
             attributes.addFlashAttribute("erro", "Erro: " + e.getMessage());
         }
-        return "redirect:/produtos/lista";
+        // REDIRECIONA PARA A MESMA TELA (SEM ID), LIMPANDO O FORMULÁRIO
+        return "redirect:/produtos/impressao"; 
     }
     
-    @GetMapping("/editar/{id}")
-    public String editar(@PathVariable String id, Model model) {
-        Product produto = repository.buscarPorId(id);
-        if (produto == null) {
-            return "redirect:/produtos/lista"; // Se não achar, volta pra lista
+    @PostMapping("/salvar-config")
+    public String salvarConfiguracao(@RequestParam String id,
+                                     @ModelAttribute PrintConfig config,
+                                     RedirectAttributes attributes) {
+        try {
+            configRepository.salvar(config);
+            attributes.addFlashAttribute("sucesso", "Ajustes aplicados! Preview atualizado.");
+        } catch (Exception e) {
+            attributes.addFlashAttribute("erro", "Erro ao salvar config: " + e.getMessage());
         }
-        model.addAttribute("product", produto);
-        return "cadastro"; // Reutiliza a tela de cadastro, mas preenchida!
+        // Redireciona de volta para a mesma tela, forçando a regeneração do ZPL com as novas medidas
+        return "redirect:/produtos/impressao?id=" + id;
     }
-    
-    
 }

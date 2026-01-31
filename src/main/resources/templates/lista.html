@@ -4,53 +4,98 @@
     <meta charset="UTF-8">
     <title>Lista de Produtos</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f6f8; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #0056b3; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        /* BASE */
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px; background-color: #f4f6f8; color: #333; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+        /* HEADER & SEARCH (Copiado do padrão impressao.html) */
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .search-container { background: #004085; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; }
+        .search-form { display: flex; gap: 10px; flex: 1; width: 100%; }
+        .search-form label { color: white; font-weight: bold; align-self: center; margin-right: 10px; white-space: nowrap; }
+        .search-form input { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 16px; outline: none; }
+        .search-form button { background: #ffc107; border: none; padding: 0 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; color: #333; transition: 0.2s; height: 45px; }
+        .search-form button:hover { background: #e0a800; }
         
-        .btn-new { background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; }
+        .btn-clear { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); margin-left: 10px; padding: 0 15px; border-radius: 4px; cursor: pointer; height: 45px; display: flex; align-items: center; text-decoration: none; font-weight: bold; }
+        .btn-clear:hover { background: rgba(255,255,255,0.3); }
+
+        /* TABELA */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #eee; }
+        th, td { border: 1px solid #eee; padding: 15px; text-align: left; }
+        th { background-color: #0056b3; color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #e9ecef; }
         
-        /* Botões de Ação */
-        .btn-print { background: #ffc107; color: #333; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; margin-right: 5px; }
-        .btn-edit { background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; }
+        /* BOTÕES */
+        .btn-new { background: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold; box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3); transition: 0.2s; }
+        .btn-new:hover { background: #218838; transform: translateY(-1px); }
+        
+        .btn-print { background: #ffc107; color: #333; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px; margin-right: 5px; display: inline-block; }
+        .btn-edit { background: #17a2b8; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px; display: inline-block; }
         .btn-print:hover { background: #e0a800; }
         .btn-edit:hover { background: #138496; }
 
         .alert { padding: 15px; margin-bottom: 20px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; }
+        .empty-msg { text-align: center; padding: 40px; color: #777; font-style: italic; background: #f9f9f9; margin-top: 20px; border-radius: 8px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div th:if="${sucesso}" class="alert" th:text="${sucesso}"></div>
     
-    <div style="display:flex; justify-content: space-between; align-items: center;">
-        <h2>Produtos Cadastrados</h2>
+    <div th:if="${sucesso}" class="alert" th:text="${sucesso}"></div>
+
+    <div class="header-actions">
+        <h2 style="margin:0; color:#004085;">📦 Produtos Cadastrados</h2>
         <a href="/produtos/novo" class="btn-new">+ Novo Cadastro</a>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 15%;">Cod. WinThor</th>
-                <th>Descrição</th>
-                <th style="width: 25%;">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="prod : ${produtos}">
-                <td th:text="${prod.codprod}"></td>
-                <td th:text="${prod.productName}"></td>
-                <td>
-					<a th:href="@{/produtos/impressao(id=${prod.id})}" class="btn-print">🖨️ Imprimir</a>
-                    
-                    <a th:href="@{/produtos/editar/{id}(id=${prod.id})}" class="btn-edit">✏️ Editar</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="search-container">
+        <form action="/produtos/lista" method="get" class="search-form">
+            <label>🔍 Filtro:</label>
+            <input type="text" name="termo" 
+                   th:value="${termoAtivo}" 
+                   placeholder="Pesquise por Código WinThor, Nome (PT) ou Nome (EN)..." 
+                   autofocus>
+            
+            <button type="submit">FILTRAR</button>
+            
+            <a th:if="${termoAtivo != null and !termoAtivo.isEmpty()}" 
+               href="/produtos/lista" class="btn-clear" title="Limpar Filtro">✕</a>
+        </form>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(produtos)}">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Cód. WinThor</th>
+                    <th>Descrição (PT / EN)</th>
+                    <th style="width: 20%; text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="prod : ${produtos}">
+                    <td>
+                        <strong style="color:#0056b3;" th:text="${prod.codprod}"></strong>
+                    </td>
+                    <td>
+                        <div th:text="${prod.productName}" style="font-weight:bold; color:#333;"></div>
+                        <div th:text="${prod.productNameEn}" style="font-size:12px; color:#666; font-style:italic;"></div>
+                    </td>
+                    <td style="text-align: center;">
+                        <a th:href="@{/produtos/impressao(id=${prod.id})}" class="btn-print" title="Ir para Impressão">🖨️ Imprimir</a>
+                        <a th:href="@{/produtos/editar/{id}(id=${prod.id})}" class="btn-edit" title="Editar Cadastro">✏️ Editar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:if="${#lists.isEmpty(produtos)}" class="empty-msg">
+        Nenhum produto encontrado. <span th:if="${termoAtivo}">Tente outro termo de pesquisa.</span>
+    </div>
+
 </div>
 </body>
 </html>

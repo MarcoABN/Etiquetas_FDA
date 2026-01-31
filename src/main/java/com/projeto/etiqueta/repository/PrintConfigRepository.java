@@ -15,34 +15,42 @@ public class PrintConfigRepository {
 
     public void salvar(PrintConfig config) {
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
-            // Salva no formato: darkness;speed;offsetX;offsetY;width;height
+            // Formato: darkness;speed;offsetLeft;offsetTop;width;height;scale;orientation
             writer.write(config.getDarkness() + ";" +
                          config.getPrintSpeed() + ";" +
-                         config.getOffsetX() + ";" +
-                         config.getOffsetY() + ";" +
-                         config.getLabelWidth() + ";" +
-                         config.getLabelHeight());
+                         config.getOffsetLeftMm() + ";" +
+                         config.getOffsetTopMm() + ";" +
+                         config.getWidthMm() + ";" +
+                         config.getHeightMm() + ";" +
+                         config.getScale() + ";" +
+                         config.getOrientation());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public PrintConfig carregar() {
-        PrintConfig config = new PrintConfig(); // Valores padrão
+        PrintConfig config = new PrintConfig();
         try (BufferedReader reader = new BufferedReader(new FileReader(CONFIG_FILE))) {
             String line = reader.readLine();
             if (line != null) {
                 String[] parts = line.split(";");
-                config.setDarkness(Integer.parseInt(parts[0]));
-                config.setPrintSpeed(Integer.parseInt(parts[1]));
-                config.setOffsetX(Integer.parseInt(parts[2]));
-                config.setOffsetY(Integer.parseInt(parts[3]));
-                config.setLabelWidth(Integer.parseInt(parts[4]));
-                config.setLabelHeight(Integer.parseInt(parts[5]));
+                if (parts.length >= 6) {
+                    config.setDarkness(Integer.parseInt(parts[0]));
+                    config.setPrintSpeed(parts[1]); 
+                    config.setOffsetLeftMm(Double.parseDouble(parts[2]));
+                    config.setOffsetTopMm(Double.parseDouble(parts[3]));
+                    config.setWidthMm(Double.parseDouble(parts[4]));
+                    config.setHeightMm(Double.parseDouble(parts[5]));
+                }
+                // Novos campos (proteção para CSV antigo)
+                if (parts.length >= 8) {
+                    config.setScale(Double.parseDouble(parts[6]));
+                    config.setOrientation(parts[7]);
+                }
             }
         } catch (Exception e) {
-            // Se der erro ou não existir arquivo, retorna o padrão
-            System.out.println("Nenhuma configuração salva encontrada, usando padrão.");
+            System.out.println("Configuração não encontrada, usando padrão.");
         }
         return config;
     }
